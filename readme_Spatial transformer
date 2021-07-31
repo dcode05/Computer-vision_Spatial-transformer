@@ -6,6 +6,33 @@ ITER2: https://colab.research.google.com/drive/1gOQml6KkcBYUEGj6DJKbOeyRqfq1N0dF
 # Have added the CIFAR-10 dataset code in the orginal code.
 
 Only 2 blocks were changed in the origical code. We will be going through them in detail here:
+1. Block1: dataset upload and preprocessing
+2. Block2: CNN, Theta calculation, affine transformation
+
+The explanation of each line of code is given in the 1st colab file link shared above.
+
+
+   # BACKGROUND:
+   Spatial transformers: "Spatial transformer networks are a generalization of differentiable attention to any spatial transformation. Spatial transformer  
+   networks (STN for short) allow a neural network to learn how to perform spatial transformations on the input image in order to enhance the geometric invariance 
+   of the model. For example, it can crop a region of interest, scale and correct the orientation of an image. It can be a useful mechanism because CNNs are not 
+   invariant to rotation and scale and more general affine transformations."
+   
+   in other words, due to dataset error or in accuracies in data collection, the final training dataset might be distorted, rotated or suffer other spatial 
+   changes. With spatial transformers, we can automate spatial modifications to the training dataset to check if any modification helps in improving the accuracy.
+   
+   # Depicting spatial transformer networks
+
+    Spatial transformer networks boils down to three main components :
+
+    1. The localization network is a regular CNN which regresses the transformation parameters. The transformation is never learned explicitly from this dataset, 
+    instead the network learns automatically the spatial transformations that enhances the global accuracy.
+    2. The grid generator generates a grid of coordinates in the input image corresponding to each pixel from the output image.
+    3. The sampler uses the parameters of the transformation and applies it to the input image.
+
+    # Ref: Spatial Transformer Networks: https://arxiv.org/abs/1506.02025
+
+
 
  # Block1
  -------------------- FOR CIFAR DATASET-----------------------------------
@@ -25,7 +52,10 @@ Only 2 blocks were changed in the origical code. We will be going through them i
      ---------------------------------------------------------------------------
      
      The CIFAR dataset is downloaded from Pytorch dataset and stored in train_loader and test_loader separately. The Normalization values are same as used before.
-     
+    
+    
+    
+    
      # Block2
      
      --------------------------------  COVNET, SPATIAL TRANSFORM MODEL FOR CIFAR 10-------------
@@ -94,25 +124,7 @@ Only 2 blocks were changed in the origical code. We will be going through them i
             model = NET().to(device)        
    ---------------------------------------------------------------------------------------------
    
-   # BACKGROUND:
-   Spatial transformers: "Spatial transformer networks are a generalization of differentiable attention to any spatial transformation. Spatial transformer  
-   networks (STN for short) allow a neural network to learn how to perform spatial transformations on the input image in order to enhance the geometric invariance 
-   of the model. For example, it can crop a region of interest, scale and correct the orientation of an image. It can be a useful mechanism because CNNs are not 
-   invariant to rotation and scale and more general affine transformations."
-   
-   in other words, due to dataset error or in accuracies in data collection, the final training dataset might be distorted, rotated or suffer other spatial 
-   changes. With spatial transformers, we can automate spatial modifications to the training dataset to check if any modification helps in improving the accuracy.
-   
-   # Depicting spatial transformer networks
 
-    Spatial transformer networks boils down to three main components :
-
-    1. The localization network is a regular CNN which regresses the transformation parameters. The transformation is never learned explicitly from this dataset, 
-    instead the network learns automatically the spatial transformations that enhances the global accuracy.
-    2. The grid generator generates a grid of coordinates in the input image corresponding to each pixel from the output image.
-    3. The sampler uses the parameters of the transformation and applies it to the input image.
-
-    # Ref: Spatial Transformer Networks: https://arxiv.org/abs/1506.02025
     
     
    
