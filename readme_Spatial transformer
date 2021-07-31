@@ -1,3 +1,118 @@
 
+COLAB LINK:
+ITER1: https://colab.research.google.com/drive/1M9wx3UzD5wlEAg_HGin-z89_BkcFf__n?usp=sharing
+ITER2: https://colab.research.google.com/drive/1gOQml6KkcBYUEGj6DJKbOeyRqfq1N0dF?usp=sharing
 
-https://colab.research.google.com/drive/1M9wx3UzD5wlEAg_HGin-z89_BkcFf__n?usp=sharing
+# Have added the CIFAR-10 dataset code in the orginal code.
+
+Only 2 blocks were changed in the origical code. We will be going through them in detail here:
+
+ # Block1
+ -------------------- FOR CIFAR DATASET-----------------------------------
+      # Training dataset
+      train_loader = torch.utils.data.DataLoader(
+          datasets.CIFAR10(root='.', train=True, download=True,
+                         transform=transforms.Compose([
+                             transforms.ToTensor(),
+                             transforms.Normalize((0.4914, 0.4822, 0.4465),  (0.2023, 0.1994, 0.2010))
+                         ])), batch_size=64, shuffle=True, num_workers=4)
+      # Test dataset
+      test_loader = torch.utils.data.DataLoader(
+          datasets.CIFAR10(root='.', train=False, transform=transforms.Compose([
+              transforms.ToTensor(),
+              transforms.Normalize((0.4914, 0.4822, 0.4465),  (0.2023, 0.1994, 0.2010))
+          ])), batch_size=64, shuffle=True, num_workers=4)
+     ---------------------------------------------------------------------------
+     
+     The CIFAR dataset is downloaded from Pytorch dataset and stored in train_loader and test_loader separately. The Normalization values are same as used before.
+     
+     # Block2
+     
+     --------------------------------  COVNET, SPATIAL TRANSFORM MODEL FOR CIFAR 10-------------
+
+            class NET(nn.Module):
+                def __init__(self):
+                    super(NET, self).__init__()
+                    # simple convnet classifier
+                    self.conv1 = nn.Conv2d(3, 6, 5)
+                    self.pool = nn.MaxPool2d(2, 2)
+                    self.conv2 = nn.Conv2d(6, 16, 5)
+                    self.fc1 = nn.Linear(16 * 5 * 5, 120)
+                    self.fc2 = nn.Linear(120, 84)
+                    self.fc3 = nn.Linear(84, 10)
+
+                    # spatial transformer localization network
+                    self.localization = nn.Sequential(
+                        nn.Conv2d(3, 64, kernel_size=7),
+                        nn.MaxPool2d(2, stride=2),
+                        nn.ReLU(True),
+                        nn.Conv2d(64, 128, kernel_size=5),
+                        nn.MaxPool2d(2, stride=2),
+                        nn.ReLU(True)
+                    )
+
+                    # tranformation regressor for theta
+                    self.fc_loc = nn.Sequential(
+                        nn.Linear(128*4*4, 256),
+                        nn.ReLU(True),
+                        nn.Linear(256, 3 * 2)
+                    )
+
+                    # initializing the weights and biases with identity transformations
+                    self.fc_loc[2].weight.data.zero_()
+                    self.fc_loc[2].bias.data.copy_(torch.tensor([1, 0, 0, 0, 1, 0], 
+                                                                dtype=torch.float))
+
+                def stn(self, x):
+                    xs = self.localization(x)
+                    xs = xs.view(-1, xs.size(1)*xs.size(2)*xs.size(3))
+
+                    # calculate the transformation parameters theta
+                    theta = self.fc_loc(xs)
+                    # resize theta
+                    theta = theta.view(-1, 2, 3) 
+                    # grid generator => transformation on parameters theta
+                    grid = F.affine_grid(theta, x.size())
+                    # grid sampling => applying the spatial transformations
+                    x = F.grid_sample(x, grid)
+
+                    return x
+
+                def forward(self, x):
+                    # transform the input
+                    x = self.stn(x)
+
+                    # forward pass through the classifier 
+                    x = self.pool(F.relu(self.conv1(x)))
+                    x = self.pool(F.relu(self.conv2(x)))
+                    x = x.view(-1, 16*5*5)
+                    x = F.relu(self.fc1(x))
+                    x = F.relu(self.fc2(x))
+                    x = self.fc3(x)
+                    return F.log_softmax(x, dim=1)
+
+            model = NET().to(device)        
+   ---------------------------------------------------------------------------------------------
+   
+   # BACKGROUND:
+   Spatial transformers: "Spatial transformer networks are a generalization of differentiable attention to any spatial transformation. Spatial transformer  
+   networks (STN for short) allow a neural network to learn how to perform spatial transformations on the input image in order to enhance the geometric invariance 
+   of the model. For example, it can crop a region of interest, scale and correct the orientation of an image. It can be a useful mechanism because CNNs are not 
+   invariant to rotation and scale and more general affine transformations."
+   
+   in other words, due to dataset error or in accuracies in data collection, the final training dataset might be distorted, rotated or suffer other spatial 
+   changes. With spatial transformers, we can automate spatial modifications to the training dataset to check if any modification helps in improving the accuracy.
+   
+   # Depicting spatial transformer networks
+
+    Spatial transformer networks boils down to three main components :
+
+    1. The localization network is a regular CNN which regresses the transformation parameters. The transformation is never learned explicitly from this dataset, 
+    instead the network learns automatically the spatial transformations that enhances the global accuracy.
+    2. The grid generator generates a grid of coordinates in the input image corresponding to each pixel from the output image.
+    3. The sampler uses the parameters of the transformation and applies it to the input image.
+
+    # Ref: Spatial Transformer Networks: https://arxiv.org/abs/1506.02025
+    
+    
+   
