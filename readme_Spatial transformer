@@ -33,7 +33,7 @@ Only 2 blocks were changed in the origical code. We will be going through them i
 
     # Ref: Spatial Transformer Networks: https://arxiv.org/abs/1506.02025
 
-
+![](stn-arch.png)
 
  # Block1
  -------------------- FOR CIFAR DATASET-----------------------------------
